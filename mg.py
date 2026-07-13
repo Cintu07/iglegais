@@ -17,7 +17,7 @@ sys.path.insert(0, os.path.abspath(SDK))
 
 from helixdb import (  # noqa: E402
     Client, DynamicQueryRequest, g, read_batch, write_batch,
-    Step, Traversal, NodeRef, RepeatConfig, sub,
+    Step, Traversal, NodeRef, RepeatConfig, sub, Projection,
 )
 from sentence_transformers import SentenceTransformer  # noqa: E402
 
@@ -102,6 +102,57 @@ class MemoryGraph:
             "caused_by": _contents(why, "why"),
             "later_contradicted_by": _contents(contra, "c"),
         }
+
+    def _candidates(self, text: str, k: int = 6):
+        """top-k vector-similar prior memories, with ids, as edge candidates."""
+        qv = embed(text)
+        res = self._read(
+            read_batch().var_as(
+                "cand",
+                g().vector_search_nodes("Memory", "embedding", qv, k).project(
+                    [Projection.property("$id", "id"), Projection.property("content", "content")]
+                ),
+            ).returning(["cand"])
+        )
+        rows = []
+
+        def walk(x):
+            if isinstance(x, dict):
+                if "id" in x and "content" in x:
+                    rows.append({"id": x["id"], "content": x["content"]})
+                for v in x.values():
+                    walk(v)
+            elif isinstance(x, list):
+                for v in x:
+                    walk(v)
+
+        walk(res)
+        return rows
+
+    def remember(self, content: str, k: int = 6):
+        """add a memory and let the local llm infer its edges to prior ones.
+        this is the self-building version: you pass plain text, no manual edges."""
+        from extract import infer_edges
+
+        cands = self._candidates(content, k)
+        edges = infer_edges(content, cands)
+        rel_map = {"caused_by": "CAUSED_BY", "contradicts": "CONTRADICTS", "follows": "FOLLOWS"}
+
+        props = {"content": content, "embedding": embed(content), "ts": int(time.time())}
+        res = self._write(
+            write_batch().var_as("m", g().add_n("Memory", props)).returning(["m"])
+        )
+        nid = _node_id(res, "m")
+        for e in edges:
+            label = rel_map.get(e["rel"])
+            if not label:
+                continue
+            self._write(
+                write_batch().var_as(
+                    "e", g().n(NodeRef.id(nid)).add_e(label, NodeRef.id(e["id"]), {})
+                ).returning(["e"])
+            )
+        return nid, edges
 
     def root_cause(self, query: str, max_depth: int = 6):
         """Walk the FULL caused_by chain (symptom -> cause -> deeper cause ->
