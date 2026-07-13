@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+verify_out.txt
+.venv/
+.env
+rt.txt
+mh.txt
