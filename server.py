@@ -21,8 +21,11 @@ def graph() -> MemoryGraph:
 
 @mcp.tool()
 def remember(content: str) -> str:
-    """Store a memory for later recall."""
-    nid = graph().add(content)
+    """Store a memory. Causal links to earlier memories are inferred automatically."""
+    nid, edges = graph().remember(content)
+    if edges:
+        rels = ", ".join(f"{e['rel']} -> {e['id']}" for e in edges)
+        return f"remembered (id {nid}, linked: {rels})"
     return f"remembered (id {nid})"
 
 
