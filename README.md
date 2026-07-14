@@ -53,27 +53,61 @@ a local graph+vector database, local embeddings, no cloud, no api keys, no bill.
 
 ## use it
 
+three steps.
+
 ```bash
-# 1. run a local graph+vector instance on localhost:6969
-# 2. then:
-python mg.py        # ingest a causal story, recall the cause
+# 1. run a local graph+vector instance on localhost:6969 (persistent mode)
+
+# 2. get a free llm key for edge inference (cerebras free tier works) and
+#    drop it in a .env file next to where you run things:
+#    CEREBRAS_API_KEY=csk-...
+
+# 3. install and wire it into your assistant:
+pip install iglegais
+claude mcp add iglegais -- iglegais
+```
+
+your assistant now has three tools: `remember`, `recall`, `why`. it stores
+plain text, the causal links get inferred automatically, and it can walk
+a chain of causes when you ask why something happened.
+
+library use, same three calls:
+
+```python
+from iglegais import MemoryGraph
+
+mg = MemoryGraph()
+mg.setup()
+mg.remember("the deploy script had a race condition")   # edges inferred
+mg.recall("why did the service fail to boot?")            # cause + contradictions
+mg.root_cause("why did the service fail to boot?")        # full chain to the root
+```
+
+or clone the repo and run the tests against your local instance:
+
+```bash
 python verify.py    # asserts the traversal returns the root cause
-python realtest.py  # two incidents, correct cause for each
+python realtest.py  # two mixed incidents, correct cause for each
+python multihop.py  # walks a 3 level chain to the root
 ```
 
 ## how it works
 
-- `add(content, causes=[], contradicts=[], follows=id)` embeds the text, adds a memory node, and links the edges.
-- `recall(query)` vector searches to the closest memory, then walks `caused_by` and `contradicts` to give you the reasoning around it.
+- `remember(content)` embeds the text, adds a memory node, and lets an llm
+  infer `caused_by` / `contradicts` / `follows` edges to earlier memories.
+- `recall(query)` vector searches to the closest memory, then walks the
+  edges to give you the reasoning around it.
+- `root_cause(query)` keeps walking `caused_by` hops until it hits the root.
 
-about 120 lines of python over a graph+vector engine. small on purpose. the engine does the heavy lifting, iglegais is the brain wiring on top.
+a few hundred lines of python over a graph+vector engine. small on purpose.
+the engine does the heavy lifting, iglegais is the brain wiring on top.
 
 ## where it goes next
 
-- infer the edges automatically from raw text instead of passing them by hand
-- trace root cause multiple hops deep
+- per user memory spaces
+- dedup on ingest
 - flag stale memories when a newer one contradicts them
-- expose it as a tool so an ai assistant can use it as long term memory
+- a visual graph of your memory
 
 ---
 

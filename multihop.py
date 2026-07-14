@@ -1,6 +1,6 @@
 """multihop test: a 3-level causal chain. root_cause() should walk all the
 way to the root, not stop at the first cause."""
-from mg import MemoryGraph
+from iglegais.mg import MemoryGraph
 
 mg = MemoryGraph()
 mg.setup()

@@ -1,7 +1,7 @@
 """
-mg — a causal/temporal memory graph on HelixDB.
+mg: the causal/temporal memory graph.
 
-The idea: memories are NODES with vector embeddings AND typed edges
+Memories are NODES with vector embeddings AND typed edges
 (CAUSED_BY, CONTRADICTS, FOLLOWS). Recall does what a flat vector store
 can't: vector-search to the relevant memory, then TRAVERSE the graph to
 return *why* it happened / how it evolved.
@@ -11,20 +11,20 @@ Runs against a local graph+vector instance on localhost:6969.
 from __future__ import annotations
 import sys, os, time
 
-# locate the graph+vector python sdk: installed package first, then the
-# IGLEGAIS_SDK_PATH env var, then a sibling checkout.
-_sdk_env = os.environ.get("IGLEGAIS_SDK_PATH")
-if _sdk_env:
-    sys.path.insert(0, os.path.abspath(_sdk_env))
-else:
-    _sibling = os.path.join(os.path.dirname(__file__), "..", "helixdb", "sdks", "python", "src")
-    if os.path.isdir(_sibling):
-        sys.path.insert(0, os.path.abspath(_sibling))
+# graph sdk: use an installed helixdb if present, otherwise the vendored copy
+# (apache 2.0, license included in _vendor/helixdb/LICENSE).
+try:
+    from helixdb import (
+        Client, DynamicQueryRequest, g, read_batch, write_batch,
+        Step, Traversal, NodeRef, RepeatConfig, sub, Projection,
+    )
+except ImportError:
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "_vendor"))
+    from helixdb import (  # noqa: E402
+        Client, DynamicQueryRequest, g, read_batch, write_batch,
+        Step, Traversal, NodeRef, RepeatConfig, sub, Projection,
+    )
 
-from helixdb import (  # noqa: E402
-    Client, DynamicQueryRequest, g, read_batch, write_batch,
-    Step, Traversal, NodeRef, RepeatConfig, sub, Projection,
-)
 from sentence_transformers import SentenceTransformer  # noqa: E402
 
 URL = "http://localhost:6969"
@@ -136,9 +136,9 @@ class MemoryGraph:
         return rows
 
     def remember(self, content: str, k: int = 6):
-        """add a memory and let the local llm infer its edges to prior ones.
+        """add a memory and let the llm infer its edges to prior ones.
         this is the self-building version: you pass plain text, no manual edges."""
-        from extract import infer_edges
+        from .extract import infer_edges
 
         cands = self._candidates(content, k)
         edges = infer_edges(content, cands)

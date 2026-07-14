@@ -4,7 +4,7 @@ then assert that vector-search + graph-traversal returns the ROOT CAUSE
 (something a flat vector store cannot do).
 Run against a fresh local instance for a clean check.
 """
-from mg import MemoryGraph
+from iglegais.mg import MemoryGraph
 
 mg = MemoryGraph()
 mg.setup()

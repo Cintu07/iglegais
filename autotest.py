@@ -4,7 +4,7 @@ the whole point: we pass PLAIN TEXT with no manual edges. the local llm has to
 figure out the caused_by / contradicts / follows links itself. then recall
 should still be able to walk to the root cause.
 """
-from mg import MemoryGraph
+from iglegais.mg import MemoryGraph
 
 mg = MemoryGraph()
 mg.setup()

@@ -4,7 +4,7 @@ separate incidents (an auth outage and a caching bug). The hard part is
 discrimination: given a mixed graph, does iglegais find the RIGHT memory and
 attribute the RIGHT cause to each symptom, without mixing them up?
 """
-from mg import MemoryGraph
+from iglegais.mg import MemoryGraph
 
 mg = MemoryGraph()
 mg.setup()

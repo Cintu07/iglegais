@@ -5,7 +5,8 @@ can store memories and ask why things happened. needs a local graph+vector
 instance running on localhost:6969.
 """
 from mcp.server.fastmcp import FastMCP
-from mg import MemoryGraph
+
+from .mg import MemoryGraph
 
 mcp = FastMCP("iglegais")
 _mg = None
@@ -41,5 +42,9 @@ def why(query: str) -> list[str]:
     return graph().root_cause(query)
 
 
-if __name__ == "__main__":
+def main():
     mcp.run()
+
+
+if __name__ == "__main__":
+    main()
