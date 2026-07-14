@@ -1,3 +1,10 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/icon-dark.svg">
+    <img src="assets/icon.svg" alt="iglegais" width="110">
+  </picture>
+</p>
+
 # iglegais
 
 memory that remembers why, not just what.

@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 140" width="140" height="140">
+  <!-- iglegais mark: a question mark drawn as a memory graph.
+       nodes + solid edges form the hook, a dashed inferred edge
+       leads to the root cause node (the dot of the "?"). -->
+  <g stroke="#101014" stroke-width="5" fill="none" stroke-linecap="round">
+    <line x1="38" y1="42" x2="62" y2="26"/>
+    <line x1="62" y1="26" x2="90" y2="34"/>
+    <line x1="90" y1="34" x2="100" y2="58"/>
+    <line x1="100" y1="58" x2="84" y2="76"/>
+    <line x1="84" y1="76" x2="70" y2="90"/>
+    <line x1="70" y1="90" x2="70" y2="102"/>
+    <line x1="70" y1="106" x2="70" y2="120" stroke-dasharray="2 7"/>
+  </g>
+  <g fill="#101014">
+    <circle cx="38" cy="42" r="7"/>
+    <circle cx="62" cy="26" r="7"/>
+    <circle cx="90" cy="34" r="7"/>
+    <circle cx="100" cy="58" r="7"/>
+    <circle cx="84" cy="76" r="7"/>
+    <circle cx="70" cy="90" r="7"/>
+  </g>
+  <!-- the root cause -->
+  <circle cx="70" cy="122" r="9" fill="#ff4d00"/>
+</svg>
