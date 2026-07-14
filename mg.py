@@ -11,9 +11,15 @@ Runs against a local graph+vector instance on localhost:6969.
 from __future__ import annotations
 import sys, os, time
 
-# use the local graph+vector python SDK (vendored alongside this project)
-SDK = os.path.join(os.path.dirname(__file__), "..", "helixdb", "sdks", "python", "src")
-sys.path.insert(0, os.path.abspath(SDK))
+# locate the graph+vector python sdk: installed package first, then the
+# IGLEGAIS_SDK_PATH env var, then a sibling checkout.
+_sdk_env = os.environ.get("IGLEGAIS_SDK_PATH")
+if _sdk_env:
+    sys.path.insert(0, os.path.abspath(_sdk_env))
+else:
+    _sibling = os.path.join(os.path.dirname(__file__), "..", "helixdb", "sdks", "python", "src")
+    if os.path.isdir(_sibling):
+        sys.path.insert(0, os.path.abspath(_sibling))
 
 from helixdb import (  # noqa: E402
     Client, DynamicQueryRequest, g, read_batch, write_batch,
