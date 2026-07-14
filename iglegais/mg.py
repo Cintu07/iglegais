@@ -19,6 +19,9 @@ try:
         Step, Traversal, NodeRef, RepeatConfig, sub, Projection,
     )
 except ImportError:
+    # a stray namespace package can get cached in sys.modules on the failed
+    # import, which would poison the retry. drop it, then load the vendored copy.
+    sys.modules.pop("helixdb", None)
     sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "_vendor"))
     from helixdb import (  # noqa: E402
         Client, DynamicQueryRequest, g, read_batch, write_batch,
