@@ -1,6 +1,18 @@
 """iglegais: memory that answers why, not just what."""
 
-from .mg import MemoryGraph
+__all__ = ["MemoryGraph", "LocalMemoryGraph", "HelixMemoryGraph"]
+__version__ = "0.2.0"
 
-__all__ = ["MemoryGraph"]
-__version__ = "0.1.1"
+
+def __getattr__(name: str):
+    # lazy so the console entry points stay fast and helix stays optional.
+    # default backend is the zero-dependency local sqlite store.
+    if name in ("MemoryGraph", "LocalMemoryGraph"):
+        from .local import LocalMemoryGraph
+
+        return LocalMemoryGraph
+    if name == "HelixMemoryGraph":
+        from .mg import MemoryGraph
+
+        return MemoryGraph
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

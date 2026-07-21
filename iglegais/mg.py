@@ -28,19 +28,16 @@ except ImportError:
         Step, Traversal, NodeRef, RepeatConfig, sub, Projection,
     )
 
-from sentence_transformers import SentenceTransformer  # noqa: E402
+from .home import helix_url  # noqa: E402
 
-URL = "http://localhost:6969"
-_model = SentenceTransformer("all-MiniLM-L6-v2")  # 384-dim, local
+URL = helix_url()  # HELIX_URL env / ~/.iglegais/.env / localhost:6969
 
-
-def embed(text: str) -> list[float]:
-    return _model.encode(text, normalize_embeddings=True).tolist()
+from .embedding import embed  # noqa: E402,F401  (shared 384-dim model)
 
 
 class MemoryGraph:
-    def __init__(self, url: str = URL):
-        self.client = Client(url)
+    def __init__(self, url: str | None = None):
+        self.client = Client(url or helix_url())
 
     def _write(self, batch):
         return self.client.query().dynamic(DynamicQueryRequest.write(batch)).send()

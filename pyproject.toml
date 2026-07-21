@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "iglegais"
-version = "0.1.1"
+version = "0.2.0"
 description = "memory that answers why, not just what. causal graph memory with an mcp server."
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -13,6 +13,7 @@ authors = [{ name = "Pawan Kalyan" }]
 keywords = ["memory", "mcp", "knowledge-graph", "ai", "vector-search"]
 dependencies = [
     "sentence-transformers>=3.0",
+    "numpy>=1.24",
     "openai>=1.50",
     "mcp>=1.0",
 ]
@@ -22,6 +23,7 @@ Repository = "https://github.com/Cintu07/iglegais"
 
 [project.scripts]
 iglegais = "iglegais.server:main"
+iglegais-setup = "iglegais.setup_cmd:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["iglegais"]

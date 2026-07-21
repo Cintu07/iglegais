@@ -1,21 +1,32 @@
 """iglegais mcp server.
 
 exposes the memory graph as tools so any mcp client (claude, cursor, etc.)
-can store memories and ask why things happened. needs a local graph+vector
-instance running on localhost:6969.
-"""
-from mcp.server.fastmcp import FastMCP
+can store memories and ask why things happened.
 
-from .mg import MemoryGraph
+by default everything lives in a single local sqlite file (nothing to run).
+set IGLEGAIS_BACKEND=helix to use a graph+vector server instead (HELIX_URL,
+default http://localhost:6969).
+"""
+import os
+
+from mcp.server.fastmcp import FastMCP
 
 mcp = FastMCP("iglegais")
 _mg = None
 
 
-def graph() -> MemoryGraph:
+def graph():
     global _mg
     if _mg is None:
-        _mg = MemoryGraph()
+        if os.environ.get("IGLEGAIS_BACKEND", "local").lower() == "helix":
+            from .home import helix_url
+            from .mg import MemoryGraph
+
+            _mg = MemoryGraph(url=helix_url())
+        else:
+            from .local import LocalMemoryGraph
+
+            _mg = LocalMemoryGraph()
         _mg.setup()
     return _mg
 

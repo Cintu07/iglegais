@@ -49,58 +49,75 @@ both passed. it kept the incidents straight.
 
 ## runs on your machine, costs nothing
 
-a local graph+vector database, local embeddings, no cloud, no api keys, no bill. your memories never leave the machine.
+everything lives in a single local file. local embeddings, no server to run, no
+cloud, no bill. your memories never leave the machine.
 
 ## use it
 
-three steps.
+```bash
+pip install iglegais
+```
+
+that's it. no database to install, nothing to start. add it to your assistant:
 
 ```bash
-# 1. run a local graph+vector instance on localhost:6969 (persistent mode)
-
-# 2. get a free llm key for edge inference (cerebras free tier works) and
-#    drop it in a .env file next to where you run things:
-#    CEREBRAS_API_KEY=csk-...
-
-# 3. install and wire it into your assistant:
-pip install iglegais
 claude mcp add iglegais -- iglegais
 ```
 
 your assistant now has three tools: `remember`, `recall`, `why`. it stores
-plain text, the causal links get inferred automatically, and it can walk
-a chain of causes when you ask why something happened.
+plain text, and it can walk a chain of causes when you ask why something
+happened.
 
-library use, same three calls:
+```text
+you: remember: the deploy failed because of a race in migrations
+you: why did the deploy fail?
+```
+
+memories are kept in `~/.iglegais/memory.db` (override with `IGLEGAIS_DB`).
+
+### library use
+
+same three calls:
 
 ```python
 from iglegais import MemoryGraph
 
 mg = MemoryGraph()
 mg.setup()
-mg.remember("the deploy script had a race condition")   # edges inferred
+mg.add("the deploy had a race condition")                 # or explicit edges
 mg.recall("why did the service fail to boot?")            # cause + contradictions
 mg.root_cause("why did the service fail to boot?")        # full chain to the root
 ```
 
-or clone the repo and run the tests against your local instance:
+### automatic edge inference (optional)
+
+`remember(content)` can infer `caused_by` / `contradicts` / `follows` edges from
+plain text using a hosted model. set a free `CEREBRAS_API_KEY` in the
+environment or `~/.iglegais/.env` to turn it on. without a key, use `add()` with
+explicit edges (shown above); everything else works the same.
+
+### bigger datasets (optional)
+
+for very large memory sets you can point iglegais at a graph+vector server
+instead of the local file: set `IGLEGAIS_BACKEND=helix` (and `HELIX_URL` if not
+`localhost:6969`). the local file is the default and is plenty for personal use.
+
+### run the tests
 
 ```bash
-python verify.py    # asserts the traversal returns the root cause
-python realtest.py  # two mixed incidents, correct cause for each
-python multihop.py  # walks a 3 level chain to the root
+python verify_local.py   # local backend, no server: asserts the root cause is found
 ```
 
 ## how it works
 
-- `remember(content)` embeds the text, adds a memory node, and lets an llm
-  infer `caused_by` / `contradicts` / `follows` edges to earlier memories.
+- `add(content, ...)` embeds the text and stores a memory node with optional
+  `caused_by` / `contradicts` / `follows` edges to earlier memories.
 - `recall(query)` vector searches to the closest memory, then walks the
   edges to give you the reasoning around it.
 - `root_cause(query)` keeps walking `caused_by` hops until it hits the root.
 
-a few hundred lines of python over a graph+vector engine. small on purpose.
-the engine does the heavy lifting, iglegais is the brain wiring on top.
+a few hundred lines of python: memories are rows, edges are rows, vector search
+is a dot product over normalized embeddings. small on purpose.
 
 ## where it goes next
 

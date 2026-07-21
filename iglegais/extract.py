@@ -37,21 +37,9 @@ _client = None
 
 
 def _api_key() -> str | None:
-    key = os.environ.get("CEREBRAS_API_KEY")
-    if key:
-        return key
-    here = os.path.dirname(os.path.abspath(__file__))
-    for env_path in (
-        os.path.join(os.getcwd(), ".env"),
-        os.path.join(here, "..", ".env"),
-        os.path.join(here, ".env"),
-    ):
-        if os.path.exists(env_path):
-            for line in open(env_path, encoding="utf-8"):
-                line = line.strip()
-                if line.startswith("CEREBRAS_API_KEY="):
-                    return line.split("=", 1)[1].strip()
-    return None
+    from .home import env_lookup
+
+    return env_lookup("CEREBRAS_API_KEY")
 
 
 def _get_client():
