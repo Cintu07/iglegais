@@ -106,7 +106,13 @@ instead of the local file: set `IGLEGAIS_BACKEND=helix` (and `HELIX_URL` if not
 
 ```bash
 python verify_local.py   # local backend, no server: asserts the root cause is found
+python stress_test.py    # brutal suite: cycles, deep chains, discrimination under noise, scale
 ```
+
+the stress suite tries to break the engine: causal loops and self loops (must
+not hang), a 15 hop chain, six separate incidents jumbled with 120 noise
+memories (must keep every root straight), persistence across reopen, unicode
+and 20k char memories, and a needle in a 400 memory haystack.
 
 ## how it works
 
