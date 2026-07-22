@@ -114,6 +114,28 @@ not hang), a 15 hop chain, six separate incidents jumbled with 120 noise
 memories (must keep every root straight), persistence across reopen, unicode
 and 20k char memories, and a needle in a 400 memory haystack.
 
+### benchmark: root-cause retrieval
+
+```bash
+python benchmark.py
+```
+
+this measures the one thing this is built for: given a symptom question, return
+the root cause, which sits several hops away and is worded nothing like the
+symptom. same corpus, three systems:
+
+```
+corpus: 8 incidents, 224 total memories
+
+  A. flat vector top-1   root-cause accuracy:  0%
+  B. flat vector top-3   root-cause recall  :  0%
+  C. iglegais root_cause accuracy           : 100%    (median 11 ms/query)
+```
+
+similarity search lands on the symptom or a distractor and misses the cause.
+walking the causal graph is what recovers the actual root. this is not a general
+memory database benchmark, it is the causal slice, run it yourself.
+
 ## how it works
 
 - `add(content, ...)` embeds the text and stores a memory node with optional

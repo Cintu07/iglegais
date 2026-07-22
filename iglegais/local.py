@@ -53,14 +53,33 @@ class LocalMemoryGraph:
 
     # ---- writes ----
 
+    def _near_duplicate(self, content: str, threshold: float = 0.97) -> int | None:
+        """id of an existing near identical memory, or None. embeddings are
+        normalized so cosine similarity is the dot product."""
+        top = self._search(content, 1)
+        if top and top[0][0] >= threshold:
+            return top[0][1]
+        return None
+
     def add(self, content: str, causes: list[int] | None = None,
-            contradicts: list[int] | None = None, follows: int | None = None) -> int:
+            contradicts: list[int] | None = None, follows: int | None = None,
+            dedup: bool = False, dedup_threshold: float = 0.97) -> int:
+        if dedup:
+            existing = self._near_duplicate(content, dedup_threshold)
+            if existing is not None:
+                # reuse the existing node, but still wire any new edges to it
+                self._link_new(existing, causes, contradicts, follows)
+                return existing
         vec = np.asarray(embed(content), dtype=np.float32).tobytes()
         cur = self.conn.execute(
             "INSERT INTO memories(content, embedding, ts) VALUES(?, ?, ?)",
             (content, vec, int(time.time())),
         )
         nid = cur.lastrowid
+        self._link_new(nid, causes, contradicts, follows)
+        return nid
+
+    def _link_new(self, src: int, causes, contradicts, follows):
         edges: list[tuple[str, int]] = []
         if follows is not None:
             edges.append(("FOLLOWS", follows))
@@ -68,9 +87,8 @@ class LocalMemoryGraph:
             edges.append(("CAUSED_BY", c))
         for c in (contradicts or []):
             edges.append(("CONTRADICTS", c))
-        self._link(nid, edges)
+        self._link(src, edges)
         self.conn.commit()
-        return nid
 
     def _link(self, src: int, edges: list[tuple[str, int]]):
         for rel, dst in edges:
@@ -79,14 +97,16 @@ class LocalMemoryGraph:
                 (src, dst, rel),
             )
 
-    def remember(self, content: str, k: int = 6):
-        """add a memory and let the llm infer its edges to prior ones."""
+    def remember(self, content: str, k: int = 6, dedup: bool = True):
+        """add a memory and let the llm infer its edges to prior ones.
+        dedup is on by default here: a near identical memory is reused, not
+        stored twice."""
         from .extract import infer_edges
 
         cands = self._candidates(content, k)
         edges = infer_edges(content, cands)
         rel_map = {"caused_by": "CAUSED_BY", "contradicts": "CONTRADICTS", "follows": "FOLLOWS"}
-        nid = self.add(content)
+        nid = self.add(content, dedup=dedup)
         self._link(nid, [(rel_map[e["rel"]], e["id"]) for e in edges if e["rel"] in rel_map])
         self.conn.commit()
         return nid, edges
