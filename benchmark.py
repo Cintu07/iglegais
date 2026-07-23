@@ -140,5 +140,58 @@ def main():
     print("cause. walking the causal graph is what recovers the actual root.")
 
 
+# ---- part 2: temporal current-truth retrieval ------------------------------
+UPDATED_FACTS = [
+    ("the primary database is postgres", "the primary database is now mysql"),
+    ("our ci runs on jenkins", "our ci runs on github actions now"),
+    ("the team is based in berlin", "the team relocated to lisbon"),
+    ("we deploy once a week", "we deploy continuously now"),
+    ("auth uses session cookies", "auth now uses signed jwt tokens"),
+    ("the app is written in flask", "the app was rewritten in fastapi"),
+    ("we bill monthly", "we switched to usage based billing"),
+    ("logs go to a local file", "logs now ship to a central service"),
+]
+TEMPORAL_QUERIES = [
+    "what database do we use?", "what runs our ci?", "where is the team?",
+    "how often do we deploy?", "how does auth work?", "what framework is the app?",
+    "how do we bill?", "where do logs go?",
+]
+
+
+def temporal_benchmark():
+    os.environ["IGLEGAIS_DB"] = os.path.join(tempfile.mkdtemp(), "bench_t.db")
+    mg = LocalMemoryGraph()
+    mg.setup()
+    ts = 1000
+    for old, new in UPDATED_FACTS:
+        o = mg.add(old)
+        mg.conn.execute("UPDATE memories SET ts=? WHERE id=?", (ts, o))
+        n = mg.add(new, contradicts=[o])
+        mg.conn.execute("UPDATE memories SET ts=? WHERE id=?", (ts + 1, n))
+        ts += 10
+    mg.conn.commit()
+
+    flat_current = igle_current = 0
+    for (old, new), q in zip(UPDATED_FACTS, TEMPORAL_QUERIES):
+        flat_top1 = mg._search(q, 1)[0][2]
+        if flat_top1 == new:
+            flat_current += 1
+        ans = mg.what_is_true(q)["answer"] or ""
+        if ans == new:
+            igle_current += 1
+
+    n = len(UPDATED_FACTS)
+    print("\n" + "=" * 62)
+    print("PART 2: temporal current-truth retrieval")
+    print("=" * 62)
+    print(f"corpus: {n} facts, each later contradicted by an updated fact\n")
+    print(f"  flat vector top-1  current-truth accuracy: {flat_current}/{n}  ({100*flat_current/n:.0f}%)")
+    print(f"  iglegais what_is_true accuracy           : {igle_current}/{n}  ({100*igle_current/n:.0f}%)")
+    print("\ninterpretation: the stale and updated facts are both similar to the")
+    print("query, so similarity search cannot tell which one is still true. the")
+    print("contradiction edge plus timestamps is what returns the current answer.")
+
+
 if __name__ == "__main__":
     main()
+    temporal_benchmark()

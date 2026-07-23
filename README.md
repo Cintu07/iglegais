@@ -16,6 +16,8 @@ iglegais stores each memory as a node with a vector *and* typed edges (`caused_b
 1. vector search to find the memory you actually mean
 2. walk the graph to hand you its cause, its contradictions, and how it evolved
 
+it answers two questions similarity search cannot: **why** did something happen (walk the causal chain to the root), and **what is still true** (when a newer memory contradicts an older one, return the current belief, not the stale one).
+
 ## the demo
 
 ```
@@ -64,13 +66,18 @@ that's it. no database to install, nothing to start. add it to your assistant:
 claude mcp add iglegais -- iglegais
 ```
 
-your assistant now has three tools: `remember`, `recall`, `why`. it stores
-plain text, and it can walk a chain of causes when you ask why something
-happened.
+your assistant now has four tools: `remember`, `recall`, `why`, `whats_true`.
+it stores plain text, walks a chain of causes when you ask why something
+happened, and tracks what is still true when a newer memory retracts an older
+one.
 
 ```text
 you: remember: the deploy failed because of a race in migrations
 you: why did the deploy fail?
+
+you: remember: the primary database is postgres
+you: remember: we migrated the primary database to mysql
+you: whats true about the primary database?   -> mysql (postgres is retracted)
 ```
 
 memories are kept in `~/.iglegais/memory.db` (override with `IGLEGAIS_DB`).
@@ -129,12 +136,22 @@ corpus: 8 incidents, 224 total memories
 
   A. flat vector top-1   root-cause accuracy:  0%
   B. flat vector top-3   root-cause recall  :  0%
-  C. iglegais root_cause accuracy           : 100%    (median 11 ms/query)
+  C. iglegais root_cause accuracy           : 100%    (median ~15 ms/query)
 ```
 
-similarity search lands on the symptom or a distractor and misses the cause.
-walking the causal graph is what recovers the actual root. this is not a general
-memory database benchmark, it is the causal slice, run it yourself.
+it also measures temporal current-truth retrieval, where a fact is later
+contradicted by an updated one:
+
+```
+  flat vector top-1  current-truth accuracy:   0%
+  iglegais what_is_true accuracy           : 100%
+```
+
+similarity search lands on the symptom (or the stale fact) because it is worded
+just like the query. walking the causal graph recovers the actual root, and the
+contradiction edges plus timestamps recover the current truth. this is not a
+general memory database benchmark, it is the two slices this is built for. run
+it yourself.
 
 ## how it works
 

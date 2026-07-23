@@ -53,6 +53,15 @@ def why(query: str) -> list[str]:
     return graph().root_cause(query)
 
 
+@mcp.tool()
+def whats_true(query: str) -> dict:
+    """What is currently true about this, ignoring beliefs a newer memory retracted."""
+    g = graph()
+    if not hasattr(g, "what_is_true"):
+        return {"error": "temporal recall needs the local backend"}
+    return g.what_is_true(query)
+
+
 def main():
     mcp.run()
 

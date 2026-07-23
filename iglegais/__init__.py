@@ -1,7 +1,7 @@
 """iglegais: memory that answers why, not just what."""
 
 __all__ = ["MemoryGraph", "LocalMemoryGraph", "HelixMemoryGraph"]
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 
 
 def __getattr__(name: str):

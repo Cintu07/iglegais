@@ -147,7 +147,51 @@ class LocalMemoryGraph:
             "closest_memory": [hcontent],
             "caused_by": [r[0] for r in caused],
             "later_contradicted_by": [r[0] for r in contra],
+            # temporal: is this belief still current, or did a newer memory retract it?
+            "status": "retracted" if contra else "current",
         }
+
+    # ---- temporal: what is still true ----
+
+    def _ts(self, nid: int):
+        row = self.conn.execute("SELECT ts FROM memories WHERE id = ?", (nid,)).fetchone()
+        return row[0] if row else None
+
+    def _contradictors(self, nid: int, as_of: int | None = None):
+        """memories that contradict nid. with as_of, only those that existed by then."""
+        q = ("SELECT m.id, m.content, m.ts FROM edges e JOIN memories m ON m.id = e.src "
+             "WHERE e.dst = ? AND e.rel = 'CONTRADICTS'")
+        params: list = [nid]
+        if as_of is not None:
+            q += " AND m.ts <= ?"
+            params.append(as_of)
+        return self.conn.execute(q, params).fetchall()
+
+    def is_current(self, nid: int, as_of: int | None = None) -> bool:
+        """current = nothing (that existed by as_of) contradicts it."""
+        return not self._contradictors(nid, as_of)
+
+    def what_is_true(self, query: str, as_of: int | None = None, k: int = 8):
+        """current-truth recall: the best matching memory that a newer memory has
+        NOT retracted. with as_of (unix seconds), answers what was true then.
+
+        a flat vector store cannot do this: it has no notion of one memory
+        invalidating another over time, so it happily returns the stale belief.
+        """
+        ranked = self._search(query, k)
+        retracted = []
+        for _, nid, content in ranked:
+            if as_of is not None and self._ts(nid) > as_of:
+                continue  # this memory did not exist yet at as_of
+            if self.is_current(nid, as_of):
+                return {
+                    "answer": content,
+                    "memory_id": nid,
+                    "status": "current",
+                    "retracted_alternatives": retracted,
+                }
+            retracted.append(content)
+        return {"answer": None, "status": "no_current_match", "retracted_alternatives": retracted}
 
     def root_cause(self, query: str, max_depth: int = 6):
         """walk the caused_by chain from the closest memory down to the root."""
